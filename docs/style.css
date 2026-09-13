@@ -1,77 +1,452 @@
-/* 全局样式重置 */
-* {
+/* ============================================================
+   个人名片 · 深色玻璃 / 旋转流光 / 颗粒噪点
+   ============================================================ */
+
+/* ---------- 设计变量 ---------- */
+:root {
+    --c-orange: #ff8a5c;
+    --c-gold:   #ffd93d;
+    --c-violet: #7c5cff;
+    --c-cyan:   #4ad8ff;
+
+    --ink:      #f7f2f4;
+    --ink-dim:  rgba(247, 242, 244, .72);
+    --glass:    rgba(255, 255, 255, .05);
+
+    --radius:   22px;
+}
+
+/* ---------- 全局重置 ---------- */
+*,
+*::before,
+*::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* body页面整体设置：实现卡片垂直+水平居中，浅灰柔和背景 */
+html {
+    height: 100%;
+}
+
 body {
-    min-height: 100vh;
-    /* flex布局居中 */
+    min-height: 100%;
     display: flex;
-    justify-content: center;
     align-items: center;
-    background-color: #f3f4f6;
-    font-family: "Microsoft Yahei", sans‑serif;
+    justify-content: center;
+    padding: 24px 16px;
+
+    background-color: #0a0710;
+    color: var(--ink);
+    font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB",
+                 system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
 }
 
-/* 名片卡片主体 */
-.card {
-    width: 340px;
-    background-color: #603f3f;
-    /* 12px圆角，需求指定 */
-    border-radius: 12px;
-    /* 柔和阴影 */
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-    padding: 36px 24px;
-    text-align: center;
-    /* 设置过渡动画，hover变化平滑 */
-    transition: transform 0.3s ease, box‑shadow 0.3s ease;
+/* ============================================================
+   一、背景：旋转锥光 + 彩色光斑 + 网格
+   ============================================================ */
+.bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
 }
 
-/* 鼠标悬浮：卡片轻微上浮，阴影加深 */
-.card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+/* 缓慢旋转的锥形光，全屏旋转感的主要来源 */
+.bg::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 170vmax;
+    height: 170vmax;
+    translate: -50% -50%;
+    background: conic-gradient(
+        from 0deg,
+        transparent            0deg,
+        rgba(124, 92, 255, .30) 55deg,
+        transparent          120deg,
+        rgba(255, 138, 92, .26) 200deg,
+        transparent          262deg,
+        rgba(74, 216, 255, .24) 320deg,
+        transparent          360deg
+    );
+    filter: blur(80px);
+    animation: spin 46s linear infinite;
 }
 
-/* 圆形头像 */
-.avatar {
-    width: 100px;
-    height: 100px;
-    /* 变成圆形 */
+/* 四周压暗，把视线收拢到卡片 */
+.bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        ellipse at 50% 45%,
+        transparent 38%,
+        rgba(6, 4, 10, .85) 100%
+    );
+}
+
+/* 漂浮光斑 */
+.orb {
+    position: absolute;
     border-radius: 50%;
-    /* 占位背景色，你可以替换background-image放自己图片 */
-    background-color: #6366f1;
-    margin: 0 auto 20px;
+    filter: blur(90px);
+    opacity: .55;
+    will-change: transform;
 }
 
-/* 姓名样式 */
+.orb-1 {
+    width: 460px; height: 460px;
+    top: -160px; left: -140px;
+    background: radial-gradient(circle, var(--c-violet), transparent 68%);
+    animation: float-a 20s ease-in-out infinite alternate;
+}
+
+.orb-2 {
+    width: 420px; height: 420px;
+    right: -140px; bottom: -120px;
+    background: radial-gradient(circle, var(--c-orange), transparent 68%);
+    animation: float-b 24s ease-in-out infinite alternate;
+}
+
+.orb-3 {
+    width: 340px; height: 340px;
+    right: 10%; top: -120px;
+    opacity: .32;
+    background: radial-gradient(circle, var(--c-cyan), transparent 70%);
+    animation: float-a 30s ease-in-out infinite alternate-reverse;
+}
+
+/* 极淡的网格，增加一点秩序感 */
+.grid {
+    position: absolute;
+    inset: 0;
+    opacity: .5;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .045) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 66%);
+            mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 66%);
+}
+
+/* ============================================================
+   二、颗粒噪点层（SVG feTurbulence 生成，无需图片资源）
+   ============================================================ */
+.grain {
+    position: fixed;
+    top: -60%;
+    left: -60%;
+    width: 220%;
+    height: 220%;
+    z-index: 999;
+    pointer-events: none;
+
+    opacity: .13;
+    mix-blend-mode: overlay;
+
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+
+    animation: grain 1.2s steps(6) infinite;
+}
+
+/* ============================================================
+   三、名片主体
+   ============================================================ */
+.card-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 356px;
+
+    padding: 2px;              /* 流光边框的可见宽度 */
+    border-radius: var(--radius);
+    overflow: hidden;
+    isolation: isolate;        /* 让 ::before 的负层级不外泄 */
+
+    box-shadow:
+        0 30px 60px -18px rgba(0, 0, 0, .80),
+        0 0 0 1px rgba(255, 255, 255, .06);
+
+    transition:
+        translate   .5s cubic-bezier(.2, .8, .2, 1),
+        scale       .5s cubic-bezier(.2, .8, .2, 1),
+        box-shadow  .5s ease;
+
+    animation: rise .9s cubic-bezier(.2, .8, .2, 1) .05s backwards;
+}
+
+/* 卡片外圈旋转的流光描边 */
+.card-container::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    z-index: -1;
+    background: conic-gradient(
+        from 0deg,
+        transparent           0deg,
+        var(--c-violet)      40deg,
+        var(--c-cyan)        80deg,
+        transparent         130deg,
+        transparent         200deg,
+        var(--c-orange)     250deg,
+        var(--c-gold)       300deg,
+        transparent         350deg
+    );
+    animation: spin 6s linear infinite;
+}
+
+.card-container:hover {
+    translate: 0 -8px;
+    scale: 1.012;
+    box-shadow:
+        0 42px 80px -22px rgba(124, 92, 255, .55),
+        0 0 0 1px rgba(255, 255, 255, .12);
+}
+
+/* ---------- 玻璃内层 ---------- */
+.card-inner {
+    position: relative;
+    padding: 40px 28px 34px;
+    border-radius: calc(var(--radius) - 2px);
+    text-align: center;
+    overflow: hidden;
+
+    background:
+        radial-gradient(120% 80% at 50% -10%,
+            rgba(255, 255, 255, .10), transparent 60%),
+        linear-gradient(165deg,
+            rgba(44, 30, 40, .94) 0%,
+            rgba(20, 13, 22, .97) 100%);
+
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+/* hover 时划过的高光 */
+.card-inner::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(105deg,
+        transparent 38%,
+        rgba(255, 255, 255, .12) 48%,
+        transparent 58%);
+    background-size: 260% 100%;
+    background-position: 180% 0;
+    transition: background-position .9s ease, opacity .25s ease;
+}
+
+.card-container:hover .card-inner::after {
+    opacity: 1;
+    background-position: -70% 0;
+}
+
+/* ============================================================
+   四、头像：旋转光圈 + 外发光
+   ============================================================ */
+.avatar-box {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    margin: 0 auto 26px;
+    isolation: isolate;
+    animation: rise .7s cubic-bezier(.2, .8, .2, 1) .25s backwards;
+}
+
+/* 外圈模糊辉光 */
+.avatar-box::before {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    z-index: -2;
+    border-radius: 50%;
+    opacity: .55;
+    filter: blur(18px);
+    background: conic-gradient(from 0deg,
+        var(--c-orange), var(--c-gold),
+        var(--c-cyan), var(--c-violet), var(--c-orange));
+    animation: spin 8s linear infinite;
+}
+
+/* 旋转的渐变圆环 */
+.avatar-ring {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg,
+        var(--c-orange), var(--c-gold),
+        var(--c-cyan), var(--c-violet), var(--c-orange));
+    animation: spin 5s linear infinite;
+}
+
+.avatar {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
+    display: block;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #1a1119;
+}
+
+/* ============================================================
+   五、文字信息
+   ============================================================ */
 .name {
-    font-size: 24px;
-    color: #1f2937;
-    margin-bottom: 8px;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: #ffffff;
+    text-shadow: 0 2px 24px rgba(255, 255, 255, .22);
+    margin-bottom: 12px;
+    animation: rise .7s cubic-bezier(.2, .8, .2, 1) .35s backwards;
 }
 
-/* 职位文本 */
+/* 职位做成胶囊标签 */
 .job {
-    font-size: 16px;
-    color: #6b7280;
-    margin-bottom: 20px;
+    display: inline-block;
+    padding: 5px 16px;
+    font-size: 12.5px;
+    letter-spacing: .16em;
+    color: #ffe3d0;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    background: linear-gradient(135deg,
+        rgba(255, 138, 92, .22),
+        rgba(124, 92, 255, .22));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+    animation: rise .7s cubic-bezier(.2, .8, .2, 1) .45s backwards;
 }
 
-/* 分割线 */
-.divider {
-    width: 80px;
-    height: 2px;
-    background-color: #e5e7eb;
-    margin: 0 auto 24px;
+/* ---------- 联系方式 ---------- */
+.contact {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-top: 30px;
+    padding-top: 26px;
+    animation: rise .7s cubic-bezier(.2, .8, .2, 1) .55s backwards;
 }
 
-/* 联系方式区域 */
+/* 顶部渐变分割线 */
+.contact::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    translate: -50% 0;
+    width: 64%;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent, rgba(255, 255, 255, .30), transparent);
+}
+
 .contact p {
-    font-size: 15px;
-    color: #4b5563;
-    margin-bottom: 10px;
+    padding: 9px 14px;
+    font-size: 14px;
+    letter-spacing: .02em;
+    text-align: center;
+    color: var(--ink-dim);
+    border-radius: 11px;
+    background: var(--glass);
+    border: 1px solid rgba(255, 255, 255, .06);
+    transition:
+        background    .3s ease,
+        border-color  .3s ease,
+        color         .3s ease,
+        translate     .3s ease;
+}
+
+.contact p:hover {
+    color: #fff;
+    translate: 0 -2px;
+    background: rgba(255, 255, 255, .10);
+    border-color: rgba(255, 255, 255, .18);
+}
+
+/* ============================================================
+   六、动画关键帧
+   ============================================================ */
+@keyframes spin {
+    to { rotate: 360deg; }
+}
+
+@keyframes rise {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes float-a {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(60px, 50px) scale(1.15); }
+}
+
+@keyframes float-b {
+    from { transform: translate(0, 0) scale(1.1); }
+    to   { transform: translate(-70px, -60px) scale(1); }
+}
+
+@keyframes grain {
+    0%, 100% { transform: translate(0, 0); }
+    16%      { transform: translate(-2%, -3%); }
+    33%      { transform: translate(3%, 2%); }
+    50%      { transform: translate(-1%, 4%); }
+    66%      { transform: translate(4%, -2%); }
+    83%      { transform: translate(-3%, 1%); }
+}
+
+/* ============================================================
+   七、响应式 & 无障碍
+   ============================================================ */
+@media (max-width: 400px) {
+    .card-container { max-width: 100%; }
+    .card-inner     { padding: 34px 20px 28px; }
+    .name           { font-size: 23px; }
+    .avatar-box     { width: 96px; height: 96px; }
+    .orb-1, .orb-2  { opacity: .4; }
+}
+
+/* 尊重「减弱动效」系统偏好 */
+@media (prefers-reduced-motion: reduce) {
+    .card-container,
+    .avatar-box,
+    .name,
+    .job,
+    .contact {
+        animation: none !important;
+    }
+
+    .bg::before,
+    .orb,
+    .grain,
+    .card-container::before,
+    .avatar-box::before,
+    .avatar-ring {
+        animation: none !important;
+    }
+
+    * {
+        transition-duration: .01ms !important;
+    }
 }
